@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class Product {
-    @Id
+    @Id//IDENTITY- дефолтная генерация, какой айди база данных дала тот и присвоим
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;

@@ -4,6 +4,9 @@ import com.geekbrains.shop.entities.Product;
 import com.geekbrains.shop.entities.dtos.ProductDto;
 import com.geekbrains.shop.exceptions.ProductNotFoundException;
 import com.geekbrains.shop.services.ProductsService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@CrossOrigin("*")
 @RequestMapping("/api/v1/products")
+@Api("Set of endpoints for CRUD operations for Products")
 public class RestProductsController {
     private ProductsService productsService;
 
@@ -21,18 +26,21 @@ public class RestProductsController {
         this.productsService = productsService;
     }
 
-    @GetMapping("/dto")//для теста получения дтошек
+    @GetMapping("/dto")
+    @ApiOperation("Returns list of all products data transfer objects")
     public List<ProductDto> getAllProductsDto() {
         return productsService.getDtoData();
     }
 
-    @GetMapping
+    @GetMapping(produces = "application/json")
+    @ApiOperation("Returns list of all products")
     public List<Product> getAllProducts() {
         return productsService.findAll();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getOneProducts(@PathVariable Long id) {
+    @GetMapping(value = "/{id}", produces = "application/json")
+    @ApiOperation("Returns one product by id")
+    public ResponseEntity<?> getOneProduct(@PathVariable @ApiParam("Id of the product to be requested. Cannot be empty") Long id) {
         if (!productsService.existsById(id)) {
             throw new ProductNotFoundException("Product not found, id: " + id);
         }
@@ -40,19 +48,20 @@ public class RestProductsController {
     }
 
     @DeleteMapping
-    public String deleteAllProducts(@PathVariable Long id) {
+    @ApiOperation("Removes all products")
+    public void deleteAllProducts() {
         productsService.deleteAll();
-        return "OK";
     }
 
     @DeleteMapping("/{id}")
-    public String deleteOneProducts(@PathVariable Long id) {
+    @ApiOperation("Removes one product by id")
+    public void deleteOneProducts(@PathVariable Long id) {
         productsService.deleteById(id);
-        return "OK";
     }
 
-    @PostMapping
+    @PostMapping(consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
+    @ApiOperation("Creates a new product")
     public Product saveNewProduct(@RequestBody Product product) {
         if (product.getId() != null) {
             product.setId(null);
@@ -60,7 +69,8 @@ public class RestProductsController {
         return productsService.saveOrUpdate(product);
     }
 
-    @PutMapping
+    @PutMapping(consumes = "application/json", produces = "application/json")
+    @ApiOperation("Modifies an existing product")
     public ResponseEntity<?> modifyProduct(@RequestBody Product product) {
         if (product.getId() == null || !productsService.existsById(product.getId())) {
             throw new ProductNotFoundException("Product not found, id: " + product.getId());
