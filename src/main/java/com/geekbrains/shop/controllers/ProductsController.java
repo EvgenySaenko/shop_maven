@@ -1,12 +1,12 @@
-package com.geekbrains.july.market.controllers;
+package com.geekbrains.shop.controllers;
 
-import com.geekbrains.july.market.entities.Product;
-import com.geekbrains.july.market.repositories.specifications.ProductSpecifications;
-import com.geekbrains.july.market.services.ProductsService;
-import com.geekbrains.july.market.utils.ProductFilter;
+import com.geekbrains.shop.entities.Category;
+import com.geekbrains.shop.entities.Product;
+import com.geekbrains.shop.services.CategoriesService;
+import com.geekbrains.shop.services.ProductsService;
+import com.geekbrains.shop.utils.ProductFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,16 +18,25 @@ import java.util.Map;
 @RequestMapping("/products")
 public class ProductsController {
     private ProductsService productsService;
+    private CategoriesService categoriesService;
 
     @Autowired
-    public ProductsController(ProductsService productsService) {
+    public ProductsController(ProductsService productsService,CategoriesService categoriesService) {
         this.productsService = productsService;
+        this.categoriesService = categoriesService;
     }
 
     @GetMapping
-    public String showAll(Model model, @RequestParam Map<String, String> requestParams) {
+    public String showAll(Model model, @RequestParam Map<String, String> requestParams,
+                                       @RequestParam(name = "categories",required = false)List<Long> categoriesIds) {
         Integer pageNumber = Integer.parseInt(requestParams.getOrDefault("p", "1"));
-        ProductFilter productFilter = new ProductFilter(requestParams);
+
+        List<Category> categoriesFilter = null;
+        if (categoriesIds != null){//если выбрали в чекбоксах категорию то находим список айдишников
+            categoriesFilter = categoriesService.getCategoriesByIds(categoriesIds);
+        }
+        //создали продукт фильтр и ему отдали мапу с реквест парамами
+        ProductFilter productFilter = new ProductFilter(requestParams,categoriesFilter);
         Page<Product> products = productsService.findAll(productFilter.getSpec(), pageNumber);
         model.addAttribute("products", products);
         model.addAttribute("filterDef", productFilter.getFilterDefinition().toString());

@@ -18,5 +18,10 @@ spring:
           use_jdbc_metadata_defaults: false
   thymeleaf:
     encoding: UTF-8
-  flyway:
-    baseline-on-migrate: true
+    prefix: file:src/main/resources/templates/
+    cache: false
+  resources:
+    static-locations: file:src/main/resources/static/
+  jackson:
+    serialization:
+      indent_output: true
