@@ -67,7 +67,7 @@
             <td th:text="${p.id}"></td>
             <td th:text="${p.title}"></td>
             <td th:text="${p.price}"></td>
-            <td><a th:href="@{'/products/edit/' + ${p.id}}">Редактировать</a></td>
+            <td><a class="btn btn-primary" th:href="@{'/cart/add/' + ${p.id}}">Добавить в корзину</a></td>
         </tr>
         </tbody>
     </table>
