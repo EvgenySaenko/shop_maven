@@ -19,4 +19,5 @@ public class AdditionalController {
     public String loginPage(){
         return "login_page";
     }
+
 }

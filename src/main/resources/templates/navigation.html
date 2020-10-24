@@ -47,6 +47,9 @@
                         </div>
                     </form>
                 </li>
+                <li sec:authorize="isAnonymous()" class="nav-item">
+                    <a class="btn btn-outline-warning" th:href="@{/register}" th:text="'Регистрация'" />
+                </li>
                 <!-- мы хотим достать текст вот под таким именем #{nav.lang}-->
                 <div class="dropdown" style="margin-left: 10px;">
                     <button class="btn btn-outline-settcondary dropdown-toggle" th:text="#{nav.lang}"

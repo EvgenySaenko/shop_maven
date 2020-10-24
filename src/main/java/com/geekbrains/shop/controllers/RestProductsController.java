@@ -40,6 +40,9 @@ public class RestProductsController {
 
     @GetMapping(value = "/{id}", produces = "application/json")
     @ApiOperation("Returns one product by id")
+//    @ApiImplicitParams(value = {
+//            @ApiImplicitParam(name = "demo", type = "String", required = false, paramType = "query")
+//    })
     public ResponseEntity<?> getOneProduct(@PathVariable @ApiParam("Id of the product to be requested. Cannot be empty") Long id) {
         if (!productsService.existsById(id)) {
             throw new ProductNotFoundException("Product not found, id: " + id);

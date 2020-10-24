@@ -35,7 +35,6 @@
                 <a class="btn btn-primary" th:href="@{'/cart/decrement/' + ${i.product.id}}">-</a>
                 <span th:text="'  ' + ${i.quantity} + '  '"/>
                 <a class="btn btn-primary" th:href="@{'/cart/add/' + ${i.product.id}}">+</a>
-
             </td>
             <td th:text="${i.price}"></td>
             <td><a class="btn btn-danger" th:href="@{'/cart/remove/' + ${i.product.id}}">Удалить</a></td>
