@@ -1,5 +1,7 @@
 package com.geekbrains.shop.configs;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,22 +17,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component//формируем фильр/наследуемся от готового фильтра
-//этот фильтр служит для того чтобы понять , пользователь который запрос послал
-//прислал ли он нам токен?
+@Component//эта часть проверяет подшит ли в запросе токен
+@AllArgsConstructor
 public class JwtRequestFilter extends OncePerRequestFilter {
     private UserDetailsService userDetailsService;
     private JwtTokenUtil jwtTokenUtil;
-
-    @Autowired
-    public void setUserDetailsService(UserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
-    }
-
-    @Autowired
-    public void setJwtTokenUtil(JwtTokenUtil jwtTokenUtil) {
-        this.jwtTokenUtil = jwtTokenUtil;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -38,23 +29,22 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         // Authorization Bearer h4iuhf38hg483ht834utj438jf348hf
         String username = null;
         String jwt = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {//обрезаем первые 7 символов -оставляем токен
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {//проверили что хэдер существует и начинается с Бирер
             jwt = authHeader.substring(7);
+            // Здесь происходит валидация токена и будет брошено MalformedJwtException
             try {//достаем инфу о пользователе потому что знаем что она вшита в токен
                 username = jwtTokenUtil.getUsernameFromToken(jwt);//если мы вытащили юзернейм
-            } catch (Exception ex) {
-                System.out.println("Token is invalid: " + ex.getMessage());
+            } catch (ExpiredJwtException e) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "{ msg: The token is expired }");
+                return;
             }
         }
         //проверяем что юзернайм такой существует,проверяем что контекст пустой(никто не зашел /авторизовался)
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);//достаем инфу о пользователе по имени
-            if (jwtTokenUtil.validateToken(jwt, userDetails)) {//проверяем токен(что инфа и те юзерДетейлс совпадают)
-                //если все норм - формируем токен
-                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(token);//и закидываем его в контекст
-            }
+            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(token);
         }
 
         filterChain.doFilter(request, response);

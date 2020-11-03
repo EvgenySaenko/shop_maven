@@ -20,23 +20,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @AllArgsConstructor
 @Profile("js")
 public class RestSecurityConfig extends WebSecurityConfigurerAdapter {
-    private final UserDetailsService userDetailsService;
     private final JwtRequestFilter jwtRequestFilter;
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService);
-    }
-
-    @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable().authorizeRequests()
+        http
+                .csrf().disable()
+                .authorizeRequests()
                 .antMatchers("/api/v1/**").authenticated()
                 .anyRequest().permitAll()
                 .and()
+                //Джи сессион создается том кэтом но она не используется безопасностью
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        //спринг секьюрити работает на фильтрах -
-        // добавляем фильтр свой(получает username and password пакует его в токен и пускает дальше на проверку)
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
@@ -49,13 +44,5 @@ public class RestSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
-    }
-
-    @Bean//формируем DaoAuthenticationProvider чтобы пользователи доставались из базы
-    public DaoAuthenticationProvider daoAuthenticationProvider() {
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setPasswordEncoder(passwordEncoder());
-        authenticationProvider.setUserDetailsService(userDetailsService);
-        return authenticationProvider;
     }
 }
