@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.util.Optional;
 
 @Controller
+@Deprecated
 public class RegistrationController {
     private UsersService usersService;
 

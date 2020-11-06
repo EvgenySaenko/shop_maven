@@ -2,6 +2,7 @@ package com.geekbrains.shop.configs;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,34 +18,47 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component//эта часть проверяет подшит ли в запросе токен
-@AllArgsConstructor
+@Component
+@Slf4j
 public class JwtRequestFilter extends OncePerRequestFilter {
     private UserDetailsService userDetailsService;
     private JwtTokenUtil jwtTokenUtil;
 
+    @Autowired
+    public void setUserDetailsService(UserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
+
+    @Autowired
+    public void setJwtTokenUtil(JwtTokenUtil jwtTokenUtil) {
+        this.jwtTokenUtil = jwtTokenUtil;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
-        // Authorization Bearer h4iuhf38hg483ht834utj438jf348hf
+
         String username = null;
         String jwt = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {//проверили что хэдер существует и начинается с Бирер
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
-            // Здесь происходит валидация токена и будет брошено MalformedJwtException
-            try {//достаем инфу о пользователе потому что знаем что она вшита в токен
-                username = jwtTokenUtil.getUsernameFromToken(jwt);//если мы вытащили юзернейм
+            try {
+                username = jwtTokenUtil.getUsernameFromToken(jwt);
             } catch (ExpiredJwtException e) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "{ msg: The token is expired }");
-                return;
+                log.debug("The token is expired");
+//                String error = JsonUtils.convertObjectToJson(new BookServiceError(HttpStatus.UNAUTHORIZED.value(), "Jwt is expired"));
+//                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, error);
+//                return;
             }
         }
-        //проверяем что юзернайм такой существует,проверяем что контекст пустой(никто не зашел /авторизовался)
+
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);//достаем инфу о пользователе по имени
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+//            if (jwtTokenUtil.validateToken(jwt, userDetails)) {
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(token);
+//            }
         }
 
         filterChain.doFilter(request, response);

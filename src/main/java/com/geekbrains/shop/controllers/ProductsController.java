@@ -1,68 +1,85 @@
 package com.geekbrains.shop.controllers;
 
-import com.geekbrains.shop.entities.Category;
+
 import com.geekbrains.shop.entities.Product;
-import com.geekbrains.shop.services.CategoriesService;
+import com.geekbrains.shop.entities.dtos.ProductDto;
+import com.geekbrains.shop.exceptions.ResourceNotFoundException;
 import com.geekbrains.shop.services.ProductsService;
-import com.geekbrains.shop.utils.ProductFilter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
-@Controller
-@RequestMapping("/products")
+@RestController
+@CrossOrigin("*")
+@RequestMapping("/api/v1/products")
+@Api("Set of endpoints for CRUD operations for Products")
+@AllArgsConstructor
 public class ProductsController {
     private ProductsService productsService;
-    private CategoriesService categoriesService;
 
-    @Autowired
-    public ProductsController(ProductsService productsService,CategoriesService categoriesService) {
-        this.productsService = productsService;
-        this.categoriesService = categoriesService;
+    @GetMapping(produces = "application/json")
+    @ApiOperation("Returns list of all products")
+    public List<ProductDto> getAllProducts() {
+        return productsService.findAllDtos();
     }
 
-    @GetMapping
-    public String showAll(Model model, @RequestParam Map<String, String> requestParams,
-                                       @RequestParam(name = "categories",required = false)List<Long> categoriesIds) {
-        Integer pageNumber = Integer.parseInt(requestParams.getOrDefault("p", "1"));
-
-        List<Category> categoriesFilter = null;
-        if (categoriesIds != null){//если выбрали в чекбоксах категорию то находим список айдишников
-            categoriesFilter = categoriesService.getCategoriesByIds(categoriesIds);
+    @GetMapping(value = "/{id}", produces = "application/json")
+    @ApiOperation("Returns one product by id")
+//    @ApiImplicitParams(value = {
+//            @ApiImplicitParam(name = "demo", type = "String", required = false, paramType = "query")
+//    })
+    public ResponseEntity<?> getOneProduct(@PathVariable @ApiParam("Id of the product to be requested. Cannot be empty") Long id) {
+        if (!productsService.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found, id: " + id);
         }
-        //создали продукт фильтр и ему отдали мапу с реквест парамами
-        ProductFilter productFilter = new ProductFilter(requestParams,categoriesFilter);
-        Page<Product> products = productsService.findAll(productFilter.getSpec(), pageNumber);
-        model.addAttribute("products", products);
-        model.addAttribute("filterDef", productFilter.getFilterDefinition().toString());
-        return "all_products";
+        return new ResponseEntity<>(productsService.findById(id), HttpStatus.OK);
     }
 
-    @GetMapping("/add")
-    public String showAddForm() {
-        return "add_product_form";
+    @DeleteMapping
+    @ApiOperation("Removes all products")
+    public void deleteAllProducts() {
+        productsService.deleteAll();
     }
 
-    @PostMapping("/add")
-    public String saveNewProduct(@ModelAttribute Product product) {
-        productsService.saveOrUpdate(product);
-        return "redirect:/products/";
+    @DeleteMapping("/{id}")
+    @ApiOperation("Deletes a product from the system. 404 if the product's identifier is not found.")
+    public void deleteOneProduct(@PathVariable Long id) {
+        if (!productsService.existsById(id)) {
+            throw new ResourceNotFoundException("Product with id: " + id + " doesn't exists (for delete)");
+        }
+        productsService.deleteById(id);
     }
 
-    @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable Long id, Model model) {
-        model.addAttribute("product", productsService.findById(id));
-        return "edit_product_form";
+    @PostMapping(consumes = "application/json", produces = "application/json")
+    @ResponseStatus(HttpStatus.CREATED)
+    @ApiOperation("Creates a new product. If id != null, then it will be cleared")
+    public Product saveNewProduct(@RequestBody Product product) {
+        if (product.getId() != null) {
+            product.setId(null);
+        }
+        return productsService.saveOrUpdate(product);
     }
 
-    @PostMapping("/edit")
-    public String modifyProduct(@ModelAttribute Product product) {
-        productsService.saveOrUpdate(product);
-        return "redirect:/products/";
+    @PutMapping(consumes = "application/json", produces = "application/json")
+    @ApiOperation("Modifies an existing product")
+    public ResponseEntity<?> modifyProduct(@RequestBody Product product) {
+        if (product.getId() == null || !productsService.existsById(product.getId())) {
+            throw new ResourceNotFoundException("Product not found, id: " + product.getId());
+        }
+        if (product.getPrice().doubleValue() < 0.0) {
+            return new ResponseEntity<>("Product's price can not be negative", HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(productsService.saveOrUpdate(product), HttpStatus.OK);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<?> handleException(ResourceNotFoundException exc) {
+        return new ResponseEntity<>(exc.getMessage(), HttpStatus.NOT_FOUND);
     }
 }

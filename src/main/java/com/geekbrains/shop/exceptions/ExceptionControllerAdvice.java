@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 public class ExceptionControllerAdvice {
     @ExceptionHandler//если где то возник ProductNotFoundException
-    public ResponseEntity<?> handleRNFException(ProductNotFoundException e) {
+    public ResponseEntity<?> handleResurceNotFoundException(ResourceNotFoundException e) {
         log.error(e.getMessage());
         //то мы формируем по нему ошибку ,защиваем статус туда нот фаунд и сообщение из эксепшена
         JulyMarketError err = new JulyMarketError(HttpStatus.NOT_FOUND.value(), e.getMessage());

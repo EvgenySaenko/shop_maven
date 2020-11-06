@@ -16,17 +16,17 @@ import java.util.stream.Collectors;
 public class JwtTokenUtil {
     @Value("${jwt.secret}")
     private String secret;
-    //можем получить всю инфу из токена
+
     private <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
         Claims claims = getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
     }
-    //можем отдать токен ввиде строки и получить имя пользователя
+
     public String getUsernameFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
-    //    private Date getExpirationDateFromToken(String token) {//в фильтре стоит уже валидация - выключаем пока нам не нужно
+//    private Date getExpirationDateFromToken(String token) {
 //        return getClaimFromToken(token, Claims::getExpiration);
 //    }
 //
@@ -38,7 +38,7 @@ public class JwtTokenUtil {
 //        String username = getUsernameFromToken(token);
 //        return Objects.equals(username, userDetails.getUsername()) && !isTokenExpired(token);
 //    }
-//мы можем сгенерить токен по юзердетейлсом
+
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         List<String> rolesList = userDetails.getAuthorities().stream()
@@ -47,11 +47,10 @@ public class JwtTokenUtil {
         claims.put("role", rolesList);
         return doGenerateToken(claims, userDetails.getUsername());
     }
-    //создание токена из списка элементов,создаем что то вроде пачки ключа значения и накидываем туда текущее время,
-    // когда был создан токен, когда его время жизни закончится
+
     private String doGenerateToken(Map<String, Object> claims, String subject) {
         Date issuedDate = new Date();
-        Date expiredDate = new Date(issuedDate.getTime() - 60 * 60 * 1000);
+        Date expiredDate = new Date(issuedDate.getTime() + 60 * 60 * 1000);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
@@ -60,7 +59,7 @@ public class JwtTokenUtil {
                 .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
     }
-    //инфа о юзере
+
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
                 .setSigningKey(secret)
